@@ -1,7 +1,13 @@
 import sys
-import time
+import threading
 import datetime
 import tkinter as tk
+import time
+import os
+
+if getattr(sys, 'frozen', False):
+    os.environ['PLAYWRIGHT_BROWSERS_PATH'] = os.path.join(sys._MEIPASS, 'ms-playwright')
+
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 
 # ──────────────────────────────────────
@@ -30,7 +36,7 @@ class SettingsDialog:
         om.grid(row=0, column=1, padx=10, pady=8, sticky="w")
         self.vars["game_region"] = v_reg
 
-        # World + Server entries
+        # World + Sietch entries
         for i, key in enumerate(("world", "sietch"), start=1):
             tk.Label(self.root, text=key.capitalize()+":", bg="#2e2e2e", fg="#fff", font=(None,10,'bold')) \
               .grid(row=i, column=0, padx=10, pady=8, sticky="e")
@@ -101,6 +107,56 @@ class ErrorDialog:
     def on_close(self):
         self.retry = False
         self.root.destroy()
+
+
+# ──────────────────────────────────────
+# Loading dialog: animated "Connecting to server..."
+# ──────────────────────────────────────
+class LoadingDialog:
+    def __init__(self, root):
+        self.root = root
+        self.dots = 0
+        self._after_id = None
+
+        self.root.title("Connecting to server...")
+        self.root.configure(bg="#2e2e2e")
+        self.root.resizable(False, False)
+
+        # FIXED WIDTH + LEFT-ALIGN so dots don't shift the text
+        self.label = tk.Label(
+            self.root,
+            text="Connecting to server",
+            bg="#2e2e2e",
+            fg="#fff",
+            font=(None,12,'bold'),
+            width=25,
+            anchor="w"
+        )
+        self.label.pack(padx=20, pady=20)
+        self._center()
+        self._animate()
+
+    def _center(self):
+        self.root.update_idletasks()
+        w, h = self.root.winfo_width(), self.root.winfo_height()
+        x = (self.root.winfo_screenwidth()//2)-(w//2)
+        y = (self.root.winfo_screenheight()//2)-(h//2)
+        self.root.geometry(f"{w}x{h}+{x}+{y}")
+
+    def _animate(self):
+        self.dots = (self.dots + 1) % 4
+        self.label.config(text="Connecting to server" + "." * self.dots)
+        # schedule next frame, saving the ID so we can cancel it later
+        self._after_id = self.root.after(500, self._animate)
+
+    def stop(self):
+        # cancel the pending callback before destruction
+        if self._after_id:
+            try:
+                self.root.after_cancel(self._after_id)
+            except tk.TclError:
+                pass
+            self._after_id = None
 
 
 # ──────────────────────────────────────
@@ -261,22 +317,44 @@ class ServerGraphApp:
 
 def main():
     while True:
+        # Ask user for region/world/sietch
         dlg = SettingsDialog()
         if not dlg.result:
             sys.exit()
-        r, w, s = dlg.result["game_region"], dlg.result["world"], dlg.result["sietch"]
+        region, world, sietch = dlg.result["game_region"], dlg.result["world"], dlg.result["sietch"]
 
-        pw = sync_playwright().start()
-        browser = pw.chromium.launch(headless=True)
-        page = browser.new_page()
-        try:
-            raw, *_ = find_server(page, r, w, s)
-        except (PWTimeoutError, Exception):
-            raw = None
-        finally:
-            browser.close()
-            pw.stop()
+        # Bring up loading window
+        load_root = tk.Tk()
+        load = LoadingDialog(load_root)
 
+        # Background thread does the lookup
+        result = {}
+        def worker():
+            pw = sync_playwright().start()
+            browser = pw.chromium.launch(headless=True)
+            page = browser.new_page()
+            try:
+                raw, *_ = find_server(page, region, world, sietch)
+                result['raw'] = raw
+            except Exception:
+                result['raw'] = None
+            finally:
+                browser.close()
+                pw.stop()
+
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
+
+        # Keep loading UI alive until lookup finishes
+        while t.is_alive():
+            load_root.update()
+            time.sleep(0.1)
+
+        # Stop animation, then destroy
+        load.stop()
+        load_root.destroy()
+
+        raw = result.get('raw')
         if raw is None:
             err = ErrorDialog()
             if err.retry:
@@ -284,7 +362,8 @@ def main():
             sys.exit()
         break
 
-    ServerGraphApp(r, w, s)
+    # Launch the graph window
+    ServerGraphApp(region, world, sietch)
 
 if __name__ == "__main__":
     main()
