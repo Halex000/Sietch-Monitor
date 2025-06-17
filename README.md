@@ -10,9 +10,9 @@ The graph updates every 3 minutes so it should allow you to quickly know when th
 
 **How to create an executable file for this program**
 
-For those of you who want to use this yourselves and want to make it into an exe file. Good news! It is possible, bad news is that it is 500MB so I can't upload an exe directly to github. Unfortunately this means you need to generate it yourself. Don't worry, it is easy and I provided everything you need.
+For those of you who want to use this yourselves and want to make it into an exe file. Good news! It is possible, bad news is that it is 500MB (python being python making programs be large for no reason) so I can't upload an exe directly to github. Unfortunately this means you need to generate it yourself. Don't worry, it is easy and I provided everything you need.
 
 Step 1: Install python at https://www.python.org/downloads/ if you do not already have it.<br>
 Step 2: Open terminal/cmd and type the following commands: "pip install pyinstaller", "pip install tkinter", "pip install playwright", "install playwright"<br>
-Step 3: Download the DA_Monitor.spec and DA_Sietch_Lock_Monitor.py files from this reposotory and put them in the same file directory on your computer.<br>
+Step 3: Download the DA_Monitor.spec and DA_Sietch_Lock_Monitor.py files from this repository and put them in the same file directory on your computer.<br>
 Step 4: In your terminal/cmd navigate to that directory and once there run "pyinstaller DA_Monitor.spec" This should generate a folder called dist and inside it will be the exe file. Feel free to delete everything else afterwards.
