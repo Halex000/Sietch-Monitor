@@ -8,7 +8,8 @@ The graph updates every 3 minutes so it should allow you to quickly know when th
 
 ![Capture](https://github.com/user-attachments/assets/4964e34e-3626-4dbc-89ed-a77ff5ecab46)
 
-**How to create an executable file for this program:**
+**How to create an executable file for this program**
+
 For those of you who want to use this yourselves and want to make it into an exe file. Good news! It is possible, bad news is that it is 500MB so I can't upload an exe directly to github. Unforunately this means you need to generate it yourself. Don't worry, it is easy and I provided everything you need.
 
 Step 1: Install python at https://www.python.org/downloads/ if you do not already have it.
